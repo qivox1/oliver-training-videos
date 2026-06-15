@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Oli's Personal Training</title>
+<link rel="stylesheet" href="https://unpkg.com/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<style>
+  :root {
+    --bg: #F8F7F4;
+    --card: #FFFFFF;
+    --header: #0F0F0E;
+    --accent: #C4784A;
+    --accent-light: #F5EBE3;
+    --text-primary: #1A1A18;
+    --text-secondary: #6B6B67;
+    --text-tertiary: #9B9B97;
+    --border: rgba(0,0,0,0.09);
+    --warn-text: #A84400;
+    --warn-bg: #FDF0E8;
+    --green: #5DA86B;
+    --tab-h: 56px;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-top: env(safe-area-inset-top, 0px);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text-primary); min-height: 100vh; overflow-x: hidden; }
+
+  /* Header */
+  .app-header { background: var(--header); color: #fff; padding: calc(16px + var(--safe-top)) 20px 18px; position: sticky; top: 0; z-index: 10; }
+  .header-label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.35); margin-bottom: 4px; }
+  .header-title { font-size: 22px; font-weight: 500; letter-spacing: -0.3px; }
+  .header-date { font-size: 13px; color: rgba(255,255,255,0.4); margin-top: 3px; }
+
+  /* Main */
+  .main { padding-bottom: calc(var(--tab-h) + var(--safe-bottom) + 20px); }
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* Day pills */
+  .day-pills { display: flex; gap: 6px; padding: 14px 16px; }
+  .day-pill { flex: 1; padding: 9px 4px; border-radius: 9px; background: var(--card); border: 0.5px solid var(--border); font-size: 14px; font-weight: 500; text-align: center; color: var(--text-secondary); cursor: pointer; }
+  .day-pill.active { background: var(--header); color: #fff; border-color: var(--header); }
+
+  /* Alert */
+  .alert-bar { margin: 0 16px 4px; background: var(--warn-bg); border-radius: 10px; border: 0.5px solid rgba(168,68,0,0.18); padding: 10px 12px; display: flex; align-items: flex-start; gap: 9px; font-size: 13px; color: var(--warn-text); line-height: 1.4; }
+  .alert-bar i { margin-top: 1px; font-size: 15px; flex-shrink: 0; }
+
+  /* Section label */
+  .section-label { font-size: 11px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-tertiary); padding: 14px 16px 8px; font-weight: 500; }
+
+  /* Exercise list */
+  .ex-list { padding: 0 16px; display: flex; flex-direction: column; gap: 8px; }
+
+  /* Exercise card */
+  .ex-card { background: var(--card); border-radius: 12px; border: 0.5px solid var(--border); overflow: hidden; transition: border-color 0.3s; }
+  .ex-card.done-card { border-color: rgba(93,168,107,0.45); background: #FAFDF9; }
+  .ex-row { display: flex; align-items: center; padding: 11px 12px; gap: 12px; cursor: pointer; }
+  .ex-row:active { background: #F9F9F7; }
+
+  /* Thumbnail */
+  .ex-thumb { width: 64px; height: 48px; border-radius: 8px; background: var(--accent-light); overflow: hidden; flex-shrink: 0; position: relative; }
+  .ex-thumb video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .ex-thumb-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+  .ex-thumb-placeholder i { font-size: 22px; color: var(--accent); opacity: 0.55; }
+  .play-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.1); border-radius: 8px; cursor: pointer; }
+  .play-overlay i { font-size: 16px; color: rgba(255,255,255,0.92); }
+
+  /* Exercise meta */
+  .ex-meta { flex: 1; min-width: 0; }
+  .ex-num { font-size: 10px; color: var(--text-tertiary); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 2px; }
+  .ex-name { font-size: 14px; font-weight: 500; color: var(--text-primary); line-height: 1.3; }
+  .ex-sets { font-size: 12px; color: var(--accent); margin-top: 2px; font-weight: 500; }
+  .ex-warn-tag { font-size: 11px; color: var(--warn-text); margin-top: 3px; display: flex; align-items: center; gap: 3px; }
+
+  /* Done badge */
+  .ex-done-badge { width: 22px; height: 22px; border-radius: 11px; background: var(--green); display: none; align-items: center; justify-content: center; flex-shrink: 0; }
+  .ex-done-badge i { font-size: 13px; color: #fff; }
+  .ex-card.done-card .ex-done-badge { display: flex; }
+
+  .ex-chevron { color: #C8C7C4; font-size: 15px; flex-shrink: 0; transition: transform 0.2s; }
+  .ex-card.open .ex-chevron { transform: rotate(180deg); }
+
+  /* Detail */
+  .ex-detail { display: none; background: #FAFAF8; border-top: 0.5px solid var(--border); padding: 12px 12px 14px; }
+  .ex-card.open .ex-detail { display: block; }
+  .detail-section { margin-bottom: 10px; }
+  .detail-section:last-child { margin-bottom: 0; }
+  .detail-label { font-size: 10px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-tertiary); font-weight: 500; margin-bottom: 4px; }
+  .detail-text { font-size: 13px; color: var(--text-secondary); line-height: 1.55; }
+  .detail-warn { font-size: 12px; color: var(--warn-text); margin-top: 8px; display: flex; align-items: flex-start; gap: 5px; }
+  .detail-warn i { font-size: 13px; margin-top: 1px; flex-shrink: 0; }
+
+  /* ── Timer ── */
+  .ex-timer { margin-top: 14px; padding-top: 12px; border-top: 0.5px solid var(--border); }
+  .timer-row { display: flex; align-items: center; gap: 10px; }
+  .timer-time { font-size: 22px; font-weight: 600; color: var(--text-primary); font-variant-numeric: tabular-nums; min-width: 52px; letter-spacing: -0.5px; }
+  .timer-bar-wrap { flex: 1; height: 5px; background: rgba(0,0,0,0.07); border-radius: 3px; overflow: hidden; }
+  .timer-bar { height: 100%; width: 100%; background: var(--accent); border-radius: 3px; transition: width 0.95s linear; }
+  .timer-start-btn { padding: 8px 14px; border-radius: 8px; border: none; background: var(--accent); color: #fff; font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; flex-shrink: 0; white-space: nowrap; }
+  .timer-start-btn:active { opacity: 0.8; }
+  .timer-start-btn i { font-size: 14px; }
+  .timer-start-btn.paused { background: #7C7C78; }
+  .timer-done-row { display: flex; align-items: center; gap: 8px; }
+  .timer-done-row i { font-size: 20px; color: var(--green); }
+  .timer-done-row span { font-size: 14px; font-weight: 600; color: var(--green); }
+  .timer-restart-link { font-size: 12px; color: var(--text-tertiary); cursor: pointer; text-decoration: underline; margin-left: auto; }
+
+  /* Session progress */
+  .session-bar { margin: 8px 16px 2px; background: var(--card); border-radius: 10px; border: 0.5px solid var(--border); padding: 10px 14px; display: flex; align-items: center; gap: 10px; }
+  .session-bar-label { font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
+  .session-bar-track { flex: 1; height: 6px; background: #EBEBEA; border-radius: 3px; overflow: hidden; }
+  .session-bar-fill { height: 100%; background: var(--green); border-radius: 3px; transition: width 0.4s ease; }
+  .session-bar-pct { font-size: 12px; font-weight: 600; color: var(--green); min-width: 34px; text-align: right; }
+
+  /* Safety footer */
+  .safety-footer { margin: 10px 16px 4px; padding: 10px 12px; background: var(--card); border-radius: 10px; border: 0.5px solid var(--border); font-size: 12px; color: var(--text-tertiary); display: flex; align-items: center; gap: 8px; line-height: 1.4; }
+  .safety-footer i { font-size: 14px; flex-shrink: 0; color: var(--accent); }
+
+  /* Rest day */
+  .rest-card { background: var(--card); border-radius: 16px; border: 0.5px solid var(--border); margin: 24px 16px; padding: 48px 20px; text-align: center; }
+  .rest-card i { font-size: 40px; color: var(--text-tertiary); display: block; margin-bottom: 14px; }
+  .rest-card p { font-size: 15px; color: var(--text-secondary); line-height: 1.6; }
+
+  /* Lightbox */
+  .lightbox { display: none; position: fixed; inset: 0; z-index: 100; background: rgba(10,10,10,0.92); align-items: center; justify-content: center; flex-direction: column; padding: 32px 24px; }
+  .lightbox.open { display: flex; }
+  .lightbox video { width: 100%; max-width: 340px; border-radius: 16px; background: #000; aspect-ratio: 1; object-fit: cover; }
+  .lightbox-name { margin-top: 18px; color: rgba(255,255,255,0.8); font-size: 15px; font-weight: 500; text-align: center; max-width: 280px; line-height: 1.4; }
+  .lightbox-close { position: absolute; top: calc(18px + var(--safe-top)); right: 18px; width: 36px; height: 36px; border-radius: 18px; background: rgba(255,255,255,0.14); border: 0.5px solid rgba(255,255,255,0.2); cursor: pointer; display: flex; align-items: center; justify-content: center; color: #fff; }
+  .lightbox-close i { font-size: 18px; }
+
+  /* Log section */
+  .log-inner { padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
+  .log-card { background: var(--card); border-radius: 12px; border: 0.5px solid var(--border); }
+  .log-card-padded { padding: 16px; }
+  .log-card-title { padding: 14px 16px; border-bottom: 0.5px solid var(--border); display: flex; align-items: center; gap: 8px; }
+  .log-card-title span { font-size: 15px; font-weight: 500; }
+  .form-row { margin-bottom: 12px; }
+  .form-row:last-child { margin-bottom: 0; }
+  .form-row label { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-tertiary); margin-bottom: 6px; font-weight: 500; }
+  .form-row input, .form-row select, .form-row textarea { width: 100%; padding: 10px 12px; border: 0.5px solid var(--border); border-radius: 9px; font-size: 14px; font-family: inherit; background: var(--bg); color: var(--text-primary); outline: none; appearance: none; -webkit-appearance: none; }
+  .form-row input:focus, .form-row select:focus, .form-row textarea:focus { border-color: var(--accent); }
+  .form-row textarea { height: 68px; resize: none; }
+  .checklist { display: flex; flex-direction: column; gap: 10px; }
+  .check-item { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--text-secondary); }
+  .check-item input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+
+  /* Exercise tracker in log */
+  .ex-tracker { background: #F4FAF5; border-radius: 9px; border: 0.5px solid rgba(93,168,107,0.3); padding: 10px 12px; }
+  .ex-tracker-header { font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--green); margin-bottom: 8px; font-weight: 500; }
+  .ex-tracker-list { display: flex; flex-direction: column; gap: 5px; }
+  .ex-tracker-item { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--text-secondary); }
+  .ex-tracker-item i { font-size: 13px; color: var(--green); }
+  .ex-tracker-item.pending { color: var(--text-tertiary); }
+  .ex-tracker-item.pending i { color: #D0CEC9; }
+  .ex-tracker-none { font-size: 13px; color: var(--text-tertiary); font-style: italic; }
+
+  /* Buttons */
+  .btn { width: 100%; padding: 13px; border: none; border-radius: 10px; font-size: 15px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .btn:active { opacity: 0.82; }
+  .btn i { font-size: 17px; }
+  .btn-dark { background: var(--header); color: #fff; }
+  .btn-accent { background: var(--accent); color: #fff; }
+
+  /* Log entries */
+  .log-entry { padding: 12px 16px; border-bottom: 0.5px solid var(--border); }
+  .log-entry:last-child { border-bottom: none; }
+  .log-entry-header { display: flex; align-items: center; gap: 8px; }
+  .log-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+  .log-dot.synced { background: var(--green); }
+  .log-date-text { font-size: 13px; font-weight: 500; }
+  .log-checks { font-size: 12px; color: var(--text-secondary); margin-top: 3px; padding-left: 15px; }
+  .log-exercises-text { font-size: 12px; color: var(--green); margin-top: 3px; padding-left: 15px; }
+  .log-note-text { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; padding-left: 15px; font-style: italic; }
+  .log-empty { padding: 36px 16px; text-align: center; color: var(--text-tertiary); font-size: 14px; }
+  .log-empty i { font-size: 36px; display: block; margin-bottom: 12px; color: #D0CEC9; }
+
+  .sync-info { font-size: 12px; color: var(--text-tertiary); text-align: center; margin-top: 4px; }
+
+  /* Bottom Tab Bar */
+  .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: calc(var(--tab-h) + var(--safe-bottom)); background: rgba(255,255,255,0.94); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px); border-top: 0.5px solid var(--border); display: flex; z-index: 20; padding-bottom: var(--safe-bottom); }
+  .tab-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; cursor: pointer; color: var(--text-tertiary); padding-top: 2px; }
+  .tab-item i { font-size: 24px; }
+  .tab-label { font-size: 10px; letter-spacing: 0.02em; display: flex; align-items: center; gap: 3px; }
+  .tab-item.active { color: var(--accent); }
+  .badge { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; padding: 0 4px; background: var(--accent); color: #fff; border-radius: 8px; font-size: 9px; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="header-label">Personal Training</div>
+  <div class="header-title">Oli's Personal Training</div>
+  <div class="header-date" id="headerDate"></div>
+</header>
+
+<main class="main">
+
+  <!-- PLAN -->
+  <div id="planSection" class="section active">
+    <div class="day-pills" id="daySelector"></div>
+    <div id="planContent"></div>
+  </div>
+
+  <!-- LOG -->
+  <div id="logSection" class="section">
+    <div class="log-inner">
+
+      <div class="log-card">
+        <div class="log-card-title">
+          <i class="ti ti-plus" style="font-size:16px; color:var(--accent)" aria-hidden="true"></i>
+          <span>Einheit eintragen</span>
+        </div>
+        <div class="log-card-padded">
+          <div class="form-row">
+            <label>Tag</label>
+            <select id="logDay" onchange="updateExTracker()">
+              <option value="0">Sonntag — Rücken &amp; Mobilisation</option>
+              <option value="3">Mittwoch — Kraft &amp; Stabilität</option>
+              <option value="5">Freitag — Balance &amp; Dehnen</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>Datum</label>
+            <input type="date" id="logDate">
+          </div>
+          <div class="form-row">
+            <label>Dauer (Minuten)</label>
+            <input type="number" id="logDuration" value="30" min="5" max="90">
+          </div>
+          <div class="form-row">
+            <label>Befinden &amp; Notizen</label>
+            <textarea id="logNote" placeholder="z.B. Knie ok, Nacken etwas verspannt…"></textarea>
+          </div>
+          <div class="form-row">
+            <label>Checks</label>
+            <div class="checklist">
+              <label class="check-item"><input type="checkbox" id="chkBz"> Blutzucker gemessen</label>
+              <label class="check-item"><input type="checkbox" id="chkWater"> 0,5 l getrunken</label>
+              <label class="check-item"><input type="checkbox" id="chkKnee"> Knie (max. 90°) beachtet</label>
+            </div>
+          </div>
+          <div class="form-row">
+            <label>Abgehakte Übungen</label>
+            <div class="ex-tracker" id="exTrackerBox">
+              <div class="ex-tracker-none">Noch keine Übungen gestartet.</div>
+            </div>
+          </div>
+          <div style="height:14px"></div>
+          <button class="btn btn-dark" onclick="saveLog()">
+            <i class="ti ti-check" aria-hidden="true"></i> Einheit speichern
+          </button>
+        </div>
+      </div>
+
+      <div class="log-card">
+        <div class="log-card-title">
+          <i class="ti ti-history" style="font-size:16px; color:var(--accent)" aria-hidden="true"></i>
+          <span>Letzte Einheiten</span>
+        </div>
+        <div id="logEntries"></div>
+      </div>
+
+      <button class="btn btn-accent" onclick="syncToProject()">
+        <i class="ti ti-refresh" aria-hidden="true"></i> Mit Projekt synchronisieren
+      </button>
+      <div class="sync-info" id="syncInfo">Sendet ungespeicherte Einträge an Claude Desktop</div>
+
+    </div>
+  </div>
+
+</main>
+
+<!-- BOTTOM TAB BAR -->
+<nav class="tab-bar" role="navigation" aria-label="Hauptnavigation">
+  <div class="tab-item active" id="tabPlan" onclick="showTab('plan')" role="button" aria-label="Trainingsplan">
+    <i class="ti ti-clipboard-list" aria-hidden="true"></i>
+    <div class="tab-label">Plan</div>
+  </div>
+  <div class="tab-item" id="tabLog" onclick="showTab('log')" role="button" aria-label="Trainingsprotokoll">
+    <i class="ti ti-checkup-list" aria-hidden="true"></i>
+    <div class="tab-label">Protokoll <span class="badge" id="unsyncedBadge" style="display:none"></span></div>
+  </div>
+</nav>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" onclick="closeLightboxBg(event)" role="dialog" aria-modal="true" aria-label="Übungsvideo">
+  <button class="lightbox-close" onclick="closeLightbox()" aria-label="Schließen">
+    <i class="ti ti-x" aria-hidden="true"></i>
+  </button>
+  <video id="lightboxVideo" autoplay loop muted playsinline></video>
+  <div class="lightbox-name" id="lightboxName"></div>
+</div>
+
+<script>
+// ─── Video-URLs (CloudFront, Stand 2026-06-14) ────────────────────────────────
+const VIDEOS = {
+  so1: 'https://d8j0ntlcm91z4.cloudfront.net/user_312eU3ZH9h1J0fDBHIn3c5OG9LX/hf_20260614_101447_af449951-0d74-47e2-9b02-883d8225e147.mp4',
+  so2: 'https://d8j0ntlcm91z4.cloudfront.net/user_312eU3ZH9h1J0fDBHIn3c5OG9LX/hf_20260614_101449_5d8daeda-d1e4-470f-809a-7cad6bb131e3.mp4',
+  so3: 'https://d8j0ntlcm91z4.cloudfront.net/user_312eU3ZH9h1J0fDBHIn3c5OG9LX/hf_20260614_112822_5190addc-5531-4984-a448-dfe35ee46c8f.mp4',
+  so4: 'https://d8j0ntlcm91z4.cloudfront.net/user_312eU3ZH9h1J0fDBHIn3c5OG9LX/hf_20260614_101453_78d19c10-8efe-4ce3-a29c-a4a4ec9fe237.mp4',
+  so5: 'https://d8j0ntlcm91z4.cloudfront.net/user_312eU3ZH9h1J0fDBHIn3c5OG9LX/hf_20260614_101706_ab4726fa-8f0a-41fd-8184-ecd28ac15b98.mp4',
+  so6: 'https://d8j0ntlcm91z4.cloudfront.net/user_312eU3ZH9h1J0fDBHIn3c5OG9LX/hf_20260614_101818_48d09b09-8295-40a0-8506-433e0e6636f3.mp4',
+  so7: 'https://d8j0ntlcm91z4.cloudfront.net/user_312eU3ZH9h1J0fDBHIn3c5OG9LX/hf_20260614_103747_089881ab-07e2-4861-8256-81e117c4672e.mp4',
+  so9: 'https://d8j0ntlcm91z4.cloudfront.net/user_312eU3ZH9h1J0fDBHIn3c5OG9LX/hf_20260614_112950_e0fa3569-0c7a-4658-bdf8-fd213116751d.mp4',
+  mi1: 'https://d8j0ntlcm91z4.cloudfront.net/user_312eU3ZH9h1J0fDBHIn3c5OG9LX/hf_20260614_103749_0eac5e2a-dad6-44b8-a65e-4c1e76a14227.mp4',
+  mi2: 'https://d8j0ntlcm91z4.cloudfront.net/user_312eU3ZH9h1J0fDBHIn3c5OG9LX/hf_20260614_103751_01b3ad28-7aee-43f7-9c4b-c105c7ef3a40.mp4',
+  mi3: 'https://d8j0ntlcm91z4.cloudfront.net/user_312eU3ZH9h1J0fDBHIn3c5OG9LX/hf_20260614_105015_cb6dca8f-4e31-4d6b-87c5-e95e2bfec33c.mp4',
+  mi4: 'https://d8j0ntlcm91z4.cloudfront.net/user_312eU3ZH9h1J0fDBHIn3c5OG9LX/hf_20260614_105017_9ca92103-0650-4384-a538-b5d34a8caedc.mp4',
+  mi5: 'https://d8j0ntlcm91z4.cloudfront.net/user_312eU3ZH9h1J0fDBHIn3c5OG9LX/hf_20260614_105019_bf09b85e-a6c2-451e-96e0-de207ec7e224.mp4',
+  mi6: 'https://d8j0ntlcm91z4.cloudfront.net/user_312eU3ZH9h1J0fDBHIn3c5OG9LX/hf_20260614_110729_4831a1e8-54b6-4424-8924-20f09742fc7b.mp4',
+  mi7: 'https://d8j0ntlcm91z4.cloudfront.net/user_312eU3ZH9h1J0fDBHIn3c5OG9LX/hf_20260614_110731_6b7b161b-e808-48c9-8bd2-26013dcd6111.mp4',
+  mi8: 'https://d8j0ntlcm91z4.cloudfront.net/user_312eU3ZH9h1J0fDBHIn3c5OG9LX/hf_20260614_110733_5e0c3e05-8130-448f-af37-1108067d9057.mp4',
+  fr1: 'https://d8j0ntlcm91z4.cloudfront.net/user_312eU3ZH9h1J0fDBHIn3c5OG9LX/hf_20260614_112407_d1d13f23-dff0-4fe3-9c84-337819a0d71a.mp4',
+  fr2: 'https://d8j0ntlcm91z4.cloudfront.net/user_312eU3ZH9h1J0fDBHIn3c5OG9LX/hf_20260614_112409_1170d4b0-08a1-41c5-8e13-00af7d73cecf.mp4',
+  fr3: 'https://d8j0ntlcm91z4.cloudfront.net/user_312eU3ZH9h1J0fDBHIn3c5OG9LX/hf_20260614_112411_0c391246-a8d8-4fc6-8627-e5a3e72eb72c.mp4',
+  fr4: 'https://d8j0ntlcm91z4.cloudfront.net/user_312eU3ZH9h1J0fDBHIn3c5OG9LX/hf_20260614_112713_e56ba45a-915f-41d1-89d4-45fccb9e6556.mp4',
+  fr5: 'https://d8j0ntlcm91z4.cloudfront.net/user_312eU3ZH9h1J0fDBHIn3c5OG9LX/hf_20260614_113419_1fa11a2c-74d8-4919-abe0-f09fae57521e.mp4',
+  fr6: 'https://d8j0ntlcm91z4.cloudfront.net/user_312eU3ZH9h1J0fDBHIn3c5OG9LX/hf_20260614_113053_d60bb647-22b9-4b15-85dc-03236b917d96.mp4',
+  fr7: 'https://d8j0ntlcm91z4.cloudfront.net/user_312eU3ZH9h1J0fDBHIn3c5OG9LX/hf_20260614_113055_c2c91637-bc48-44fc-b446-1ebb882fcfc7.mp4',
+  fr8: 'https://d8j0ntlcm91z4.cloudfront.net/user_312eU3ZH9h1J0fDBHIn3c5OG9LX/hf_20260614_113421_06951e2c-9444-48ac-b2c6-13dc5ca8bf47.mp4',
+  fr9: 'https://d8j0ntlcm91z4.cloudfront.net/user_312eU3ZH9h1J0fDBHIn3c5OG9LX/hf_20260614_113525_c1f512f5-5da9-4e64-a71b-5ff191f34371.mp4',
+};
+
+// ─── Trainingsplan (dur = Sekunden für den Timer) ─────────────────────────────
+const PLANS = {
+  0: {
+    title: 'Rücken & Mobilisation',
+    safety: 'Faszienrolle nur auf Brustwirbelsäule – nicht auf den Nacken',
+    alert: 'Blutzucker messen · 0,5 l trinken vor dem Training',
+    exercises: [
+      { name: 'Gehen auf der Stelle', sets: '5 Minuten', dur: 300, icon: 'ti-run', video: VIDEOS.so1,
+        ausfuehrung: 'Aufrecht stehen, abwechselnd die Knie leicht anheben. Arme locker mitschwingen wie beim Spazierengehen. Tempo moderat.',
+        note: 'Locker starten, Arme mitschwingen' },
+      { name: 'Faszienrolle Brustwirbelsäule', sets: '2 × 60 Sek.', dur: 120, icon: 'ti-wave-sine', video: VIDEOS.so2,
+        ausfuehrung: 'Rolle quer unter die Brustwirbelsäule legen. Hände hinter dem Kopf verschränken. Langsam rückwärts rollen bis zu einem Druckpunkt – 5–10 Sek. verweilen.',
+        note: 'Langsam rollen, bei Schmerzpunkten verweilen', warn: 'Nicht auf den Nacken' },
+      { name: 'Massageball Nacken & Schultern', sets: '2 × 60 Sek.', dur: 120, icon: 'ti-ball-football', video: VIDEOS.so3,
+        ausfuehrung: 'Ball zwischen Wand und Nacken/Schulter klemmen. Mit dem Körpergewicht sanft Druck aufbauen. Kleine Kreisbewegungen oder einfach stehen bleiben und atmen.',
+        note: 'An Wand lehnen, sanfter Druck auf Verspannungen' },
+      { name: 'Hyperextension (flach)', sets: '3 × 10 Wdh.', dur: 120, icon: 'ti-body-scan', video: VIDEOS.so4,
+        ausfuehrung: 'Auf der Hyperextensionsbank bäuchlings einspannen. Arme vor der Brust kreuzen. Aus der Hüfte den Oberkörper nur leicht (ca. 20–30 cm) anheben.',
+        note: 'Nur leicht heben, langsam und kontrolliert', warn: 'Nicht überstrecken' },
+      { name: 'Schulterkreisen mit Stab', sets: '2 × 15 Wdh.', dur: 90, icon: 'ti-rotate-clockwise', video: VIDEOS.so5,
+        ausfuehrung: 'Stab schulterbreit greifen. Große, langsame Kreise mit den Armen – erst vorwärts, dann rückwärts. Schulterblätter dabei aktiv bewegen.',
+        note: 'Arme in alle Richtungen bewegen' },
+      { name: 'Nackendehnungen', sets: '5 × 20 Sek.', dur: 100, icon: 'ti-yoga', video: VIDEOS.so6,
+        ausfuehrung: 'Aufrecht sitzen. Kopf langsam zur rechten Seite neigen, 20 Sek. halten. Dann links. Kein Drücken mit der Hand – nur Eigengewicht.',
+        note: 'Kopf seitlich neigen – kein Drücken, sanft dehnen' },
+      { name: 'Katzenbuckel / Hohlkreuz', sets: '3 × 10 Wdh.', dur: 120, icon: 'ti-wave-square', video: VIDEOS.so7,
+        ausfuehrung: 'Auf allen Vieren. Beim Ausatmen: Rücken runden (Katzenbuckel). Beim Einatmen: Rücken senken (Hohlkreuz). Langsam und fließend wechseln.',
+        note: 'Rücken abwechselnd runden und strecken' },
+      { name: 'Kind-Pose', sets: '3 × 30 Sek.', dur: 90, icon: 'ti-arrows-down-up',
+        ausfuehrung: 'Aus dem Vierfüßlerstand das Gesäß Richtung Fersen senken. Arme weit nach vorne strecken. Stirn ablegen und tief in den Rücken atmen.',
+        note: 'Arme nach vorne strecken, tief entspannen' },
+      { name: 'Massagepistole Nacken/Schultern', sets: '3–5 Min.', dur: 240, icon: 'ti-device-gamepad-2', video: VIDEOS.so9,
+        ausfuehrung: 'Niedriger Aufsatz wählen. Langsam über Nacken und Schultern führen – nicht auf Wirbelknochen direkt, nur auf die Muskulatur daneben.',
+        note: 'Cool Down: gezielte Entspannung' },
+    ]
+  },
+  3: {
+    title: 'Kraft & Stabilität',
+    safety: 'Schulterpress nicht zu schwer – Candesartan kann Schwindel verursachen',
+    alert: 'Blutzucker messen · 0,5 l trinken vor dem Training',
+    exercises: [
+      { name: 'Arm-Schwingen & Schultern', sets: '3 Minuten', dur: 180, icon: 'ti-arrows-left-right', video: VIDEOS.mi1,
+        ausfuehrung: 'Aufrecht stehen. Arme locker vor dem Körper kreuzen und weit nach außen schwingen. Dann große Schulterkreise – erst vorwärts, dann rückwärts.',
+        note: 'Arme kreisen, Schultern lockern' },
+      { name: 'Kurzhantel Rudern (einarmig)', sets: '3 × 12 Wdh.', dur: 150, icon: 'ti-weight', video: VIDEOS.mi2,
+        ausfuehrung: 'Eine Hand auf der Bank abstützen. Mit der freien Hand die Hantel ziehen – Ellbogen eng am Körper nach hinten bis zur Hüfte. Schulterblatt zusammenziehen.',
+        note: 'Bowflex 4–6 kg, Ellbogen nach hinten' },
+      { name: 'Schulterpress sitzend', sets: '3 × 10 Wdh.', dur: 120, icon: 'ti-barbell', video: VIDEOS.mi3,
+        ausfuehrung: 'Aufrecht auf Bank sitzen. Hanteln auf Schulterhöhe, Ellbogen seitlich. Nach oben drücken bis kurz vor Streckung. Kontrolliert absenken.',
+        note: 'Sitzen, kontrolliert drücken', warn: 'Nicht zu schwer – Schwindel möglich' },
+      { name: 'TRX Rudern', sets: '3 × 10 Wdh.', dur: 120, icon: 'ti-topology-star-ring-3', video: VIDEOS.mi4,
+        ausfuehrung: 'TRX-Griffe greifen, Körper schräg nach hinten lehnen. Brust zu den Griffen ziehen, Ellbogen nach hinten. Schulterblätter zusammenziehen.',
+        note: 'Körper schräg, Brust zu den Griffen ziehen' },
+      { name: 'Fitnessband Zugübung', sets: '3 × 12 Wdh.', dur: 150, icon: 'ti-line-dashed', video: VIDEOS.mi5,
+        ausfuehrung: 'Band auf Brusthöhe befestigen. Einen Schritt zurücktreten bis das Band gespannt ist. Arme gestreckt – horizontal ziehen bis die Hände neben der Brust sind.',
+        note: 'Horizontal ziehen, Schulterblätter aktiv' },
+      { name: 'Miniband Seitschritte', sets: '2 × 10 pro Seite', dur: 120, icon: 'ti-arrows-move-horizontal', video: VIDEOS.mi6,
+        ausfuehrung: 'Miniband um die Oberschenkel. Leicht in die Knie gehen. Kleine Seitschritte – Band gespannt halten, Knie nicht einwärts fallen lassen.',
+        note: 'Kleine Schritte, Knie nach außen', warn: 'Linkes Knie schonen – max. 90°' },
+      { name: 'Dead Bug', sets: '3 × 8 Wdh.', dur: 120, icon: 'ti-bug', video: VIDEOS.mi7,
+        ausfuehrung: 'Auf dem Rücken. Arme senkrecht, Beine im 90° angehoben. Rechten Arm nach hinten + linkes Bein strecken – Lendenwirbel bleibt am Boden. Seite wechseln.',
+        note: 'Gegengleich strecken – Rücken bleibt am Boden' },
+      { name: 'Cool Down: Oberkörper dehnen', sets: '4 Minuten', dur: 240, icon: 'ti-stretching', video: VIDEOS.mi8,
+        ausfuehrung: 'Brust dehnen: Arme hinter dem Rücken nach oben ziehen. Schultern: Arm vor Brust kreuzen. Seiten: Arm über Kopf, neigen. Je 20–30 Sek.',
+        note: 'Brust, Schultern, Seiten – je 20–30 Sek.' },
+    ]
+  },
+  5: {
+    title: 'Balance & Dehnen',
+    safety: 'BOSU nur mit Sicherheitsabstand zur Wand – Gleichgewicht kann schwanken',
+    alert: 'Blutzucker messen · 0,5 l trinken vor dem Training',
+    exercises: [
+      { name: 'Aufwärmen: Marschieren', sets: '4 Minuten', dur: 240, icon: 'ti-walk', video: VIDEOS.fr1,
+        ausfuehrung: 'Auf der Stelle marschieren. Knie leicht anheben. Arme locker im Gegentakt mitschwingen. Gleichmäßiges Tempo, durch die Nase einatmen.',
+        note: 'Knie leicht anheben, Arme mitschwingen' },
+      { name: 'BOSU Balance Stand', sets: '3 × 30 Sek.', dur: 90, icon: 'ti-circle-half', video: VIDEOS.fr2,
+        ausfuehrung: 'BOSU flache Seite nach oben. Beide Füße auf den Rand stellen. Aufrecht stehen, Blick fixieren, Rumpf anspannen. Bei Unsicherheit Wand in Reichweite.',
+        note: 'Blickpunkt fixieren', warn: 'Wand in Reichweite halten' },
+      { name: 'BOSU Gewichtsverlagerung', sets: '2 × 10 Wdh.', dur: 80, icon: 'ti-scale', video: VIDEOS.fr3,
+        ausfuehrung: 'Auf dem BOSU stehen. Gewicht langsam links/rechts verlagern – aktiv Gleichgewicht halten. Nicht ruckartig. Rumpf angespannt.',
+        note: 'Langsam verlagern', warn: 'Linkes Knie – nur sanfte Verlagerung' },
+      { name: 'Beckenkippen', sets: '3 × 12 Wdh.', dur: 150, icon: 'ti-ripple', video: VIDEOS.fr4,
+        ausfuehrung: 'Auf dem Rücken, Knie angestellt. Becken langsam nach oben kippen – Lendenwirbel drückt leicht zum Boden. Zurück in Neutral. Sehr kleine, kontrollierte Bewegung.',
+        note: 'Tiefe Rückenmuskulatur aktivieren' },
+      { name: 'Brücke (Bridge)', sets: '3 × 10 Wdh.', dur: 120, icon: 'ti-arch', video: VIDEOS.fr5,
+        ausfuehrung: 'Rückenlage, Knie angestellt. Gesäß nur leicht anheben – nicht voll durchstrecken. Bauch anspannen, 2 Sek. halten. Kontrolliert absenken.',
+        note: 'Gesäß leicht heben, Bauch anspannen', warn: 'Knie schonen – nicht voll durchstrecken' },
+      { name: 'Miniband Abduktion (sitzend)', sets: '3 × 12 Wdh.', dur: 150, icon: 'ti-arrows-split-2', video: VIDEOS.fr6,
+        ausfuehrung: 'Auf Bankkante sitzen. Miniband um Oberschenkel. Beide Knie gegen Widerstand auseinander drücken – 5 Sek. halten. Rücken gerade.',
+        note: 'Sitzend, Knie sanft auseinander' },
+      { name: 'Wirbelsäulen-Mobilisation', sets: '3 × 8 Wdh.', dur: 100, icon: 'ti-spine', video: VIDEOS.fr7,
+        ausfuehrung: 'Rückenlage, Knie angestellt. Arme seitlich ausgestreckt. Beide Knie zusammen langsam zur rechten Seite kippen. Zurück, dann links. Ohne Schwung.',
+        note: 'Oberkörper und Schultern bleiben am Boden' },
+      { name: 'Ganzkörper-Dehnen', sets: '6–8 Minuten', dur: 420, icon: 'ti-arrows-maximize', video: VIDEOS.fr8,
+        ausfuehrung: 'Hüftbeuger → Oberschenkel → Rücken (Knie zur Brust) → Schultern. Jede Position mindestens 30 Sek. halten, tief atmen.',
+        note: 'Hüfte, Oberschenkel, Rücken, Schultern – je 30 Sek.' },
+      { name: 'Faszienrolle Beine', sets: '3 Minuten', dur: 180, icon: 'ti-cylinder', video: VIDEOS.fr9,
+        ausfuehrung: 'Oberschenkel vorne und hinten langsam ausrollen, bei Druckpunkten verweilen. Wade: Rolle unter die Wade, Körpergewicht mit Armen stützen.',
+        note: 'Oberschenkel, Wade – langsam rollen' },
+    ]
+  }
+};
+
+const TRAINING_DAYS = [0, 3, 5];
+const DAY_NAMES = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+const DAY_LABEL = { 0: 'Sonntag', 3: 'Mittwoch', 5: 'Freitag' };
+
+// ─── localStorage ─────────────────────────────────────────────────────────────
+function getLog() { return JSON.parse(localStorage.getItem('trainingLog') || '[]'); }
+function saveLogData(l) { localStorage.setItem('trainingLog', JSON.stringify(l)); }
+
+// ─── Timer-State ──────────────────────────────────────────────────────────────
+let activeTimer = null;          // { cardId, day, exIdx, intervalId, remaining, total }
+const sessionDone = new Map();   // cardId → { name, day }
+
+// ─── Audio-Beep (3× Ton bei Ablauf) ──────────────────────────────────────────
+function playBeep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.5, 1.0].forEach(t => {
+      const osc = ctx.createOscillator();
+      const g   = ctx.createGain();
+      osc.connect(g); g.connect(ctx.destination);
+      osc.type = 'sine'; osc.frequency.value = 880;
+      g.gain.setValueAtTime(0, ctx.currentTime + t);
+      g.gain.linearRampToValueAtTime(0.4, ctx.currentTime + t + 0.05);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.4);
+      osc.start(ctx.currentTime + t);
+      osc.stop(ctx.currentTime + t + 0.45);
+    });
+  } catch(e) {}
+}
+
+// ─── Timer-Hilfsfunktionen ────────────────────────────────────────────────────
+function fmtTime(s) {
+  const m = Math.floor(s / 60), sec = s % 60;
+  return `${m}:${String(sec).padStart(2,'0')}`;
+}
+
+function timerHTML(cardId, day, exIdx, dur) {
+  return `<div class="timer-row">
+    <span class="timer-time" id="ttime_${cardId}">${fmtTime(dur)}</span>
+    <div class="timer-bar-wrap"><div class="timer-bar" id="tbar_${cardId}" style="width:100%"></div></div>
+    <button class="timer-start-btn" id="tbtn_${cardId}"
+      onclick="startTimer('${cardId}',${day},${exIdx})" aria-label="Übung starten">
+      <i class="ti ti-player-play" aria-hidden="true"></i> Starten
+    </button>
+  </div>`;
+}
+
+function timerDoneHTML(cardId, day, exIdx) {
+  return `<div class="timer-done-row">
+    <i class="ti ti-circle-check" aria-hidden="true"></i>
+    <span>Abgeschlossen!</span>
+    <span class="timer-restart-link" onclick="restartTimer('${cardId}',${day},${exIdx})">Neu starten</span>
+  </div>`;
+}
+
+function setTimerUI(cardId, remaining, total) {
+  const t = document.getElementById('ttime_' + cardId);
+  const b = document.getElementById('tbar_'  + cardId);
+  if (t) t.textContent = fmtTime(remaining);
+  if (b) b.style.width = ((remaining / total) * 100) + '%';
+}
+
+// ─── Timer: starten ───────────────────────────────────────────────────────────
+function startTimer(cardId, day, exIdx) {
+  // Laufenden Timer (anderer Karte) pausieren
+  if (activeTimer && activeTimer.cardId !== cardId) {
+    clearInterval(activeTimer.intervalId);
+    const pb = document.getElementById('tbtn_' + activeTimer.cardId);
+    if (pb) { pb.innerHTML = '<i class="ti ti-player-play" aria-hidden="true"></i> Weiter'; pb.classList.add('paused'); pb.onclick = () => resumeTimer(activeTimer.cardId); }
+    activeTimer.intervalId = null;
+  }
+  // Bereits abgehakte Übung zurücksetzen
+  if (sessionDone.has(cardId)) {
+    sessionDone.delete(cardId);
+    const card = document.getElementById(cardId);
+    if (card) card.classList.remove('done-card');
+    document.getElementById('done_' + cardId).style.display = 'none';
+  }
+
+  const total = PLANS[day].exercises[exIdx].dur;
+  let remaining = (activeTimer && activeTimer.cardId === cardId)
+    ? activeTimer.remaining : total;
+
+  activeTimer = { cardId, day, exIdx, intervalId: null, remaining, total };
+  const btn = document.getElementById('tbtn_' + cardId);
+  if (btn) { btn.innerHTML = '<i class="ti ti-player-pause" aria-hidden="true"></i> Pause'; btn.classList.remove('paused'); btn.onclick = () => pauseTimer(cardId); }
+
+  const id = setInterval(() => {
+    activeTimer.remaining--;
+    setTimerUI(cardId, activeTimer.remaining, total);
+    if (activeTimer.remaining <= 0) {
+      clearInterval(id); activeTimer = null;
+      finishTimer(cardId, day, exIdx, total);
+    }
+  }, 1000);
+  activeTimer.intervalId = id;
+}
+
+function pauseTimer(cardId) {
+  if (!activeTimer || activeTimer.cardId !== cardId) return;
+  clearInterval(activeTimer.intervalId); activeTimer.intervalId = null;
+  const btn = document.getElementById('tbtn_' + cardId);
+  if (btn) { btn.innerHTML = '<i class="ti ti-player-play" aria-hidden="true"></i> Weiter'; btn.classList.add('paused'); btn.onclick = () => resumeTimer(cardId); }
+}
+
+function resumeTimer(cardId) {
+  if (!activeTimer || activeTimer.cardId !== cardId) return;
+  startTimer(cardId, activeTimer.day, activeTimer.exIdx);
+}
+
+function finishTimer(cardId, day, exIdx, total) {
+  playBeep();
+  setTimerUI(cardId, 0, total);
+  sessionDone.set(cardId, { name: PLANS[day].exercises[exIdx].name, day });
+  // Karte grün
+  const card = document.getElementById(cardId);
+  if (card) card.classList.add('done-card');
+  document.getElementById('done_' + cardId).style.display = 'flex';
+  // Timer-Bereich ersetzen
+  const timerEl = document.getElementById('timer_' + cardId);
+  if (timerEl) timerEl.innerHTML = timerDoneHTML(cardId, day, exIdx);
+  updateSessionBar(day);
+  updateExTracker();
+}
+
+function restartTimer(cardId, day, exIdx) {
+  sessionDone.delete(cardId);
+  const card = document.getElementById(cardId);
+  if (card) card.classList.remove('done-card');
+  document.getElementById('done_' + cardId).style.display = 'none';
+  const timerEl = document.getElementById('timer_' + cardId);
+  if (timerEl) timerEl.innerHTML = timerHTML(cardId, day, exIdx, PLANS[day].exercises[exIdx].dur);
+  updateSessionBar(day);
+  updateExTracker();
+}
+
+// ─── Session-Fortschrittsbalken ───────────────────────────────────────────────
+function updateSessionBar(day) {
+  const plan = PLANS[day];
+  if (!plan) return;
+  const total = plan.exercises.length;
+  const done  = plan.exercises.filter((_, i) => sessionDone.has(`card_${day}_${i}`)).length;
+  const pct   = Math.round((done / total) * 100);
+  const fill  = document.getElementById('sessionFill');
+  const pctEl = document.getElementById('sessionPct');
+  const lbl   = document.getElementById('sessionLabel');
+  if (fill)  fill.style.width = pct + '%';
+  if (pctEl) pctEl.textContent = pct + '%';
+  if (lbl)   lbl.textContent = `${done} / ${total} Übungen`;
+}
+
+// ─── Plan-Rendering ───────────────────────────────────────────────────────────
+function init() {
+  const now = new Date();
+  document.getElementById('headerDate').textContent =
+    now.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' });
+  document.getElementById('logDate').value = now.toISOString().split('T')[0];
+  const today = now.getDay();
+  document.getElementById('logDay').value =
+    TRAINING_DAYS.includes(today) ? String(today) : '0';
+  buildDaySelector(today);
+  renderPlan(TRAINING_DAYS.includes(today) ? today : TRAINING_DAYS[0]);
+  renderLog();
+  updateSyncBadge();
+  updateExTracker();
+}
+
+function buildDaySelector(today) {
+  const c = document.getElementById('daySelector');
+  c.innerHTML = '';
+  TRAINING_DAYS.forEach((d, i) => {
+    const btn = document.createElement('button');
+    const first = i === 0 && !TRAINING_DAYS.includes(today);
+    btn.className = 'day-pill' + (d === today || first ? ' active' : '');
+    btn.textContent = DAY_NAMES[d];
+    btn.dataset.day = d;
+    btn.onclick = () => {
+      document.querySelectorAll('.day-pill').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderPlan(parseInt(btn.dataset.day));
+    };
+    c.appendChild(btn);
+  });
+}
+
+function renderPlan(day) {
+  const content = document.getElementById('planContent');
+  const plan = PLANS[day];
+  if (!plan) {
+    content.innerHTML = `<div class="rest-card"><i class="ti ti-sofa" aria-hidden="true"></i><p>Heute ist kein Trainingstag.<br>Erhol dich gut!</p></div>`;
+    return;
+  }
+
+  const total = plan.exercises.length;
+  const done  = plan.exercises.filter((_, i) => sessionDone.has(`card_${day}_${i}`)).length;
+  const pct   = Math.round((done / total) * 100);
+
+  let html = `
+    <div class="alert-bar">
+      <i class="ti ti-alert-circle" aria-hidden="true"></i>
+      <span>${plan.alert}</span>
+    </div>
+    <div class="session-bar">
+      <span class="session-bar-label" id="sessionLabel">${done} / ${total} Übungen</span>
+      <div class="session-bar-track"><div class="session-bar-fill" id="sessionFill" style="width:${pct}%"></div></div>
+      <span class="session-bar-pct" id="sessionPct">${pct}%</span>
+    </div>
+    <div class="section-label">${plan.title}</div>
+    <div class="ex-list">`;
+
+  plan.exercises.forEach((ex, i) => {
+    const cardId  = `card_${day}_${i}`;
+    const isDone  = sessionDone.has(cardId);
+    const doneClass = isDone ? ' done-card' : '';
+
+    let thumbHtml;
+    if (ex.video) {
+      const t = ex.name.replace(/'/g, "\\'");
+      thumbHtml = `
+        <video src="${ex.video}" autoplay loop muted playsinline style="width:100%;height:100%;object-fit:cover;display:block;"></video>
+        <div class="play-overlay" onclick="openLightbox(event,'${ex.video}','${t}')" aria-label="Video vergrößern">
+          <i class="ti ti-maximize" aria-hidden="true" style="font-size:15px"></i>
+        </div>`;
+    } else {
+      thumbHtml = `<div class="ex-thumb-placeholder"><i class="ti ${ex.icon}" aria-hidden="true"></i></div>`;
+    }
+
+    html += `
+      <div class="ex-card${doneClass}" id="${cardId}">
+        <div class="ex-row" onclick="toggleCard('${cardId}')">
+          <div class="ex-thumb">${thumbHtml}</div>
+          <div class="ex-meta">
+            <div class="ex-num">Übung ${i + 1}</div>
+            <div class="ex-name">${ex.name}</div>
+            <div class="ex-sets">${ex.sets}</div>
+            ${ex.warn ? `<div class="ex-warn-tag"><i class="ti ti-alert-triangle" style="font-size:11px" aria-hidden="true"></i>${ex.warn}</div>` : ''}
+          </div>
+          <div class="ex-done-badge" id="done_${cardId}" style="${isDone ? 'display:flex' : 'display:none'}">
+            <i class="ti ti-check" aria-hidden="true"></i>
+          </div>
+          <i class="ti ti-chevron-down ex-chevron" aria-hidden="true"></i>
+        </div>
+        <div class="ex-detail">
+          <div class="detail-section">
+            <div class="detail-label">Ausführung</div>
+            <div class="detail-text">${ex.ausfuehrung}</div>
+          </div>
+          <div class="detail-section">
+            <div class="detail-label">Hinweis</div>
+            <div class="detail-text">${ex.note}</div>
+          </div>
+          ${ex.warn ? `<div class="detail-warn"><i class="ti ti-alert-triangle" aria-hidden="true"></i>${ex.warn}</div>` : ''}
+          <div class="ex-timer" id="timer_${cardId}">
+            ${isDone ? timerDoneHTML(cardId, day, i) : timerHTML(cardId, day, i, ex.dur)}
+          </div>
+        </div>
+      </div>`;
+  });
+
+  html += `</div>
+    <div class="safety-footer">
+      <i class="ti ti-shield-check" aria-hidden="true"></i>
+      <span>${plan.safety}</span>
+    </div>`;
+  content.innerHTML = html;
+}
+
+function toggleCard(id) {
+  const card = document.getElementById(id);
+  if (card) card.classList.toggle('open');
+}
+
+// ─── Lightbox ─────────────────────────────────────────────────────────────────
+function openLightbox(e, src, title) {
+  e.stopPropagation();
+  const vid = document.getElementById('lightboxVideo');
+  vid.src = src; vid.play();
+  document.getElementById('lightboxName').textContent = title;
+  document.getElementById('lightbox').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+  const vid = document.getElementById('lightboxVideo');
+  vid.pause(); vid.src = '';
+  document.body.style.overflow = '';
+}
+function closeLightboxBg(e) {
+  if (e.target === document.getElementById('lightbox')) closeLightbox();
+}
+
+// ─── Tab-Navigation ───────────────────────────────────────────────────────────
+function showTab(tab) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+  document.getElementById(tab + 'Section').classList.add('active');
+  document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+  if (tab === 'log') updateExTracker();
+}
+
+// ─── Übungs-Tracker im Protokoll-Formular ────────────────────────────────────
+function updateExTracker() {
+  const dayVal = parseInt(document.getElementById('logDay').value);
+  const plan   = PLANS[dayVal];
+  const box    = document.getElementById('exTrackerBox');
+  if (!plan || !box) return;
+
+  const doneCount = plan.exercises.filter((_, i) => sessionDone.has(`card_${dayVal}_${i}`)).length;
+  const items = plan.exercises.map((ex, i) => {
+    const done = sessionDone.has(`card_${dayVal}_${i}`);
+    return `<div class="ex-tracker-item ${done ? '' : 'pending'}">
+      <i class="ti ${done ? 'ti-circle-check' : 'ti-circle'}" aria-hidden="true"></i>
+      ${ex.name}
+    </div>`;
+  }).join('');
+
+  box.innerHTML = `
+    <div class="ex-tracker-header">${doneCount} / ${plan.exercises.length} Übungen absolviert</div>
+    <div class="ex-tracker-list">${items}</div>`;
+}
+
+// ─── Log: Einheit speichern ───────────────────────────────────────────────────
+function saveLog() {
+  const dayVal  = parseInt(document.getElementById('logDay').value);
+  const plan    = PLANS[dayVal];
+  const exercises = plan
+    ? plan.exercises.map((ex, i) => ({ name: ex.name, done: sessionDone.has(`card_${dayVal}_${i}`) }))
+    : [];
+
+  const entry = {
+    day:       DAY_LABEL[dayVal] || 'Unbekannt',
+    dayKey:    dayVal,
+    date:      document.getElementById('logDate').value,
+    duration:  document.getElementById('logDuration').value,
+    note:      document.getElementById('logNote').value,
+    chkBz:     document.getElementById('chkBz').checked,
+    chkWater:  document.getElementById('chkWater').checked,
+    chkKnee:   document.getElementById('chkKnee').checked,
+    exercises,
+    synced:    false,
+    savedAt:   new Date().toISOString()
+  };
+  if (!entry.date) { alert('Bitte ein Datum wählen.'); return; }
+
+  const log = getLog();
+  log.unshift(entry);
+  saveLogData(log);
+
+  document.getElementById('logNote').value = '';
+  ['chkBz','chkWater','chkKnee'].forEach(id => document.getElementById(id).checked = false);
+  renderLog();
+  updateSyncBadge();
+  alert('Einheit gespeichert!');
+}
+
+// ─── Log: anzeigen ────────────────────────────────────────────────────────────
+function renderLog() {
+  const log = getLog();
+  const c   = document.getElementById('logEntries');
+  if (!log.length) {
+    c.innerHTML = '<div class="log-empty"><i class="ti ti-calendar-off" aria-hidden="true"></i>Noch keine Einheiten protokolliert.</div>';
+    return;
+  }
+  c.innerHTML = log.slice(0, 10).map(e => {
+    const d       = new Date(e.date);
+    const dateStr = d.toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'short' });
+    const checks  = [e.chkBz && 'BZ ✓', e.chkWater && 'Wasser ✓', e.chkKnee && 'Knie ✓'].filter(Boolean).join(' · ');
+    const doneEx  = e.exercises ? e.exercises.filter(ex => ex.done) : [];
+    const totalEx = e.exercises ? e.exercises.length : 0;
+    const exLine  = totalEx > 0
+      ? `${doneEx.length}/${totalEx}: ${doneEx.length ? doneEx.map(ex => ex.name).join(', ') : '—'}`
+      : '';
+    return `<div class="log-entry">
+      <div class="log-entry-header">
+        <div class="log-dot ${e.synced ? 'synced' : ''}"></div>
+        <div class="log-date-text">${dateStr} — ${e.day} (${e.duration} Min.)</div>
+      </div>
+      ${checks ? `<div class="log-checks">${checks}</div>` : ''}
+      ${exLine  ? `<div class="log-exercises-text">🏋️ ${exLine}</div>` : ''}
+      ${e.note  ? `<div class="log-note-text">${e.note}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ─── Sync-Badge ───────────────────────────────────────────────────────────────
+function updateSyncBadge() {
+  const n = getLog().filter(e => !e.synced).length;
+  const b = document.getElementById('unsyncedBadge');
+  b.textContent = n;
+  b.style.display = n > 0 ? 'inline-flex' : 'none';
+}
+
+// ─── Sync zum Projekt ─────────────────────────────────────────────────────────
+function syncToProject() {
+  const unsynced = getLog().filter(e => !e.synced);
+  if (!unsynced.length) { alert('Alles bereits synchronisiert!'); return; }
+
+  let msg = 'TRAININGLOG SYNC\n\n';
+  unsynced.forEach(e => {
+    const d = new Date(e.date).toLocaleDateString('de-DE');
+    msg += `📅 ${d} – ${e.day} (${e.duration} Min.)\n`;
+    if (e.chkBz)    msg += '  ✓ Blutzucker gemessen\n';
+    if (e.chkWater) msg += '  ✓ 0,5 l getrunken\n';
+    if (e.chkKnee)  msg += '  ✓ Knie (90°) beachtet\n';
+    if (e.exercises && e.exercises.length) {
+      const done = e.exercises.filter(ex => ex.done);
+      msg += `  🏋️ Übungen: ${done.length}/${e.exercises.length}\n`;
+      e.exercises.forEach(ex => { msg += `    ${ex.done ? '✓' : '○'} ${ex.name}\n`; });
+    }
+    if (e.note) msg += `  📝 ${e.note}\n`;
+    msg += '\n';
+  });
+  msg += 'Bitte diese Einheiten in die training_log.md im Projekt speichern und mit "SYNC OK" bestätigen.';
+
+  const markSynced = () => {
+    const log = getLog();
+    log.forEach(e => { if (!e.synced) e.synced = true; });
+    saveLogData(log);
+    renderLog();
+    updateSyncBadge();
+  };
+
+  if (window.sendPrompt) {
+    markSynced();
+    window.sendPrompt(msg);
+    document.getElementById('syncInfo').textContent = '✅ Gesendet — Claude speichert die Daten.';
+  } else if (navigator.clipboard) {
+    navigator.clipboard.writeText(msg).then(() => {
+      markSynced();
+      document.getElementById('syncInfo').textContent = '📋 Kopiert — in Claude einfügen und senden!';
+    }).catch(() => {
+      document.getElementById('syncInfo').textContent = '⚠️ Kopieren fehlgeschlagen.';
+    });
+  } else {
+    document.getElementById('syncInfo').textContent = '⚠️ Nur in Claude Cowork oder Safari nutzbar.';
+  }
+}
+
+init();
+</script>
+</body>
+</html>
